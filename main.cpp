@@ -5,6 +5,36 @@
 
 using namespace std;
 
+struct Buffer {
+    size_t width, height;
+    uint32_t* data;
+};
+
+struct Sprite {
+    size_t width, height;
+    uint8_t* data;
+};
+
+struct Alien
+{
+    size_t x, y;
+    uint8_t type;
+};
+
+struct Player
+{
+    size_t x, y;
+    size_t lives;
+};
+
+struct Game
+{
+    size_t width, height;
+    size_t alienNum;
+    Alien* aliens;
+    Player player;
+};
+
 void framebufferSizeCallback(GLFWwindow* window, int width, int height){
     glViewport(0, 0, width, height);
 }
@@ -13,16 +43,6 @@ void processInput(GLFWwindow* window){
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 }
-
-struct Buffer{
-    size_t width, height;
-    uint32_t* data;
-};
-
-struct Sprite{
-    size_t width, height;
-    uint8_t* data;
-};
 
 void clearBuffer(Buffer* buffer, uint32_t colour){
     for (size_t i = 0; i < buffer->width * buffer->height; i++)    {
@@ -76,10 +96,10 @@ const size_t bufferHeight = 256;
 
 int main(){
     //create alien sprite
-    Sprite alien;
-    alien.width = 11;
-    alien.height = 8;
-    alien.data = new uint8_t[11 * 8]{
+    Sprite alienSprite;
+    alienSprite.width = 11;
+    alienSprite.height = 8;
+    alienSprite.data = new uint8_t[11 * 8]{
         0,0,1,0,0,0,0,0,1,0,0, // ..@.....@..
         0,0,0,1,0,0,0,1,0,0,0, // ...@...@...
         0,0,1,1,1,1,1,1,1,0,0, // ..@@@@@@@..
@@ -88,6 +108,20 @@ int main(){
         1,0,1,1,1,1,1,1,1,0,1, // @.@@@@@@@.@
         1,0,1,0,0,0,0,0,1,0,1, // @.@.....@.@
         0,0,0,1,1,0,1,1,0,0,0  // ...@@.@@...
+    };
+
+    //player sprite
+    Sprite playerSprite;
+    playerSprite.width = 11;
+    playerSprite.height = 7;
+    playerSprite.data = new uint8_t[11 * 7]{
+        0,0,0,0,0,1,0,0,0,0,0, // .....@.....
+        0,0,0,0,1,1,1,0,0,0,0, // ....@@@....
+        0,0,0,0,1,1,1,0,0,0,0, // ....@@@....
+        0,1,1,1,1,1,1,1,1,1,0, // .@@@@@@@@@.
+        1,1,1,1,1,1,1,1,1,1,1, // @@@@@@@@@@@
+        1,1,1,1,1,1,1,1,1,1,1, // @@@@@@@@@@@
+        1,1,1,1,1,1,1,1,1,1,1, // @@@@@@@@@@@
     };
 
     glfwInit();
@@ -162,6 +196,25 @@ int main(){
     glDisable(GL_DEPTH_TEST);
     glActiveTexture(GL_TEXTURE0);
 
+    //create game struct
+    Game game;
+    game.width = bufferWidth;
+    game.height = bufferHeight;
+    game.alienNum = 55;
+    game.aliens = new Alien[game.alienNum];
+
+    game.player.x = 112 - 5;
+    game.player.y = 32;
+
+    game.player.lives = 3;
+
+    for (size_t i = 0; i < 5; i++){
+        for (size_t j = 0; j < 11; j++){
+            game.aliens[i * 11 + j].x = 16 * j + 20;
+            game.aliens[i * 11 + j].y = 17 * i + 128;
+        }
+    }
+
     //render loop
     while (!glfwWindowShouldClose(window)){
         //input
@@ -169,7 +222,13 @@ int main(){
 
         //render commands
         clearBuffer(&buffer, clearColour);
-        drawSprite(&buffer, alien, 112, 128, rgbToUint32(0, 255, 0));
+
+        for (size_t i = 0; i < game.alienNum; i++){
+            const Alien& alien = game.aliens[i];
+            drawSprite(&buffer, alienSprite, alien.x, alien.y, rgbToUint32(0, 255, 0));
+        }
+
+        drawSprite(&buffer, playerSprite, game.player.x, game.player.y, rgbToUint32(0, 255, 0));
 
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, buffer.width, buffer.height, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, buffer.data);
         
@@ -184,7 +243,7 @@ int main(){
     }
 
     delete[] buffer.data;
-    delete[] alien.data;
+    delete[] alienSprite.data;
 
     glfwTerminate();
 
