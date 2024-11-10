@@ -46,9 +46,12 @@ void framebufferSizeCallback(GLFWwindow* window, int width, int height){
     glViewport(0, 0, width, height);
 }
 
-void processInput(GLFWwindow* window){
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
+void processInput(GLFWwindow* window, int key, int scancode, int action, int mods){
+    switch (key) {
+    case GLFW_KEY_ESCAPE:
+        if(action == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
+        break;
+    }
 }
 
 void clearBuffer(Buffer* buffer, uint32_t colour){
@@ -259,7 +262,7 @@ int main(){
         auto frameStart = chrono::high_resolution_clock::now();
 
         //input
-        processInput(window);
+        glfwSetKeyCallback(window, processInput);
 
         //render commands
         clearBuffer(&buffer, clearColour);
