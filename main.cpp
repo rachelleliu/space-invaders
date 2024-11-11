@@ -7,6 +7,9 @@
 
 using namespace std;
 
+//input for player direction
+int inputDir = 0;
+
 struct Buffer{
     size_t width, height;
     uint32_t* data;
@@ -51,6 +54,14 @@ void processInput(GLFWwindow* window, int key, int scancode, int action, int mod
     case GLFW_KEY_ESCAPE:
         if(action == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
         break;
+    case GLFW_KEY_RIGHT:
+        if (action == GLFW_PRESS) inputDir += 1;
+        else if (action == GLFW_RELEASE) inputDir -= 1;
+        break;
+    case GLFW_KEY_LEFT:
+        if (action == GLFW_PRESS) inputDir -= 1;
+        else if (action == GLFW_RELEASE) inputDir += 1;
+        break;    
     }
 }
 
@@ -255,13 +266,11 @@ int main(){
         }
     }
 
-    int player_move_dir = 1;
-
     //render loop
     while (!glfwWindowShouldClose(window)){
         auto frameStart = chrono::high_resolution_clock::now();
 
-        //input
+        //process user input
         glfwSetKeyCallback(window, processInput);
 
         //render commands
@@ -298,15 +307,19 @@ int main(){
         //check and call events, swap buffers
         glfwSwapBuffers(window);
 
-        if (game.player.x + playerSprite.width + player_move_dir >= game.width - 1){
-            game.player.x = game.width - playerSprite.width - player_move_dir - 1;
-            player_move_dir *= -1;
+        //update player movement
+        int playerDir = 2 * inputDir;
+
+        if (playerDir != 0){
+            if (game.player.x + playerSprite.width + playerDir >= game.width) {
+                game.player.x = game.width - playerSprite.width;
+            }
+            else if ((int)game.player.x + playerDir <= 0) {
+                game.player.x = 0;
+                playerDir *= -1;
+            }
+            else game.player.x += playerDir;
         }
-        else if ((int)game.player.x + player_move_dir <= 0){
-            game.player.x = 0;
-            player_move_dir *= -1;
-        }
-        else game.player.x += player_move_dir;
 
         glfwPollEvents();
 
