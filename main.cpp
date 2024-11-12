@@ -7,8 +7,11 @@
 
 using namespace std;
 
-//input for player direction
+#define MAX_BULLETS 128
+
+//global variables for player input
 int inputDir = 0;
+bool fire = 0;
 
 struct Buffer{
     size_t width, height;
@@ -30,11 +33,18 @@ struct Player{
     size_t lives;
 };
 
+struct Bullet {
+    size_t x, y;
+    int dir;
+};
+
 struct Game{
     size_t width, height;
     size_t alienNum;
+    size_t bulletNum;
     Alien* aliens;
     Player player;
+    Bullet bullets[MAX_BULLETS];
 };
 
 struct SpriteAnimation{
@@ -62,6 +72,9 @@ void processInput(GLFWwindow* window, int key, int scancode, int action, int mod
         if (action == GLFW_PRESS) inputDir -= 1;
         else if (action == GLFW_RELEASE) inputDir += 1;
         break;    
+    case GLFW_KEY_SPACE:
+        if (action == GLFW_PRESS) fire = true;
+        break;
     }
 }
 
@@ -160,6 +173,16 @@ int main(){
         1,1,1,1,1,1,1,1,1,1,1, // @@@@@@@@@@@
     };
 
+    //bullet sprite
+    Sprite bulletSprite;
+    bulletSprite.width = 1;
+    bulletSprite.height = 3;
+    bulletSprite.data = new uint8_t[3]{
+        1, // @
+        1, // @
+        1  // @
+    };
+
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -251,6 +274,7 @@ int main(){
     Game game;
     game.width = bufferWidth;
     game.height = bufferHeight;
+    game.bulletNum = 0;
     game.alienNum = 55;
     game.aliens = new Alien[game.alienNum];
 
@@ -276,6 +300,7 @@ int main(){
         //render commands
         clearBuffer(&buffer, clearColour);
 
+        //draw aliens
         for (size_t i = 0; i < game.alienNum; i++){
             const Alien& alien = game.aliens[i];
             size_t currentFrame = alienAnimation->time / alienAnimation->frameDuration;
@@ -283,7 +308,16 @@ int main(){
             drawSprite(&buffer, sprite, alien.x, alien.y, rgbToUint32(0, 255, 0));
         }
 
+        //draw player
         drawSprite(&buffer, playerSprite, game.player.x, game.player.y, rgbToUint32(0, 255, 0));
+
+        //draw bullets
+        for (size_t i = 0; i < game.bulletNum; i++)
+        {
+            const Bullet& bullet = game.bullets[i];
+            const Sprite& sprite = bulletSprite;
+            drawSprite(&buffer, sprite, bullet.x, bullet.y, rgbToUint32(0, 255, 0));
+        }
 
         //update animations
         ++alienAnimation->time;
@@ -294,6 +328,16 @@ int main(){
             {
                 delete alienAnimation;
                 alienAnimation = nullptr;
+            }
+        }
+
+        //update bullets
+        for (size_t i = 0; i < game.bulletNum; i++){
+            game.bullets[i].y += game.bullets[i].dir;
+            if (game.bullets[i].y >= game.height || game.bullets[i].y < bulletSprite.height){
+                game.bullets[i] = game.bullets[game.bulletNum - 1];
+                game.bulletNum--;
+                continue;
             }
         }
 
@@ -320,6 +364,15 @@ int main(){
             }
             else game.player.x += playerDir;
         }
+
+        if (fire && game.bulletNum < MAX_BULLETS){
+            game.bullets[game.bulletNum].x = game.player.x + playerSprite.width / 2;
+            game.bullets[game.bulletNum].y = game.player.y + playerSprite.height;
+            game.bullets[game.bulletNum].dir = 2;
+            game.bulletNum++;
+        }
+
+        fire = false;
 
         glfwPollEvents();
 
