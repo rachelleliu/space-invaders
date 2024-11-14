@@ -105,6 +105,10 @@ uint32_t rgbToUint32(uint8_t r, uint8_t g, uint8_t b){
     return (r << 24) | (g << 16) | (b << 8) | 255;
 }
 
+bool spriteOverlap(const Sprite& sprite1, size_t x1, size_t y1, const Sprite& sprite2, size_t x2, size_t y2){
+    return (x1 < x2 + sprite2.width && x1 + sprite1.width > x2 && y1 < y2 + sprite2.height && y1 + sprite1.height > y2);
+}
+
 const char* vertexShader =
     "\n"
     "#version 330\n"
@@ -436,6 +440,25 @@ int main(){
                 game.bullets[i] = game.bullets[game.bulletNum - 1];
                 game.bulletNum--;
                 continue;
+            }
+
+            //check if alien hit
+            for (size_t j = 0; j < game.alienNum; j++){
+                const Alien& alien = game.aliens[j];
+                if (alien.type == ALIEN_DEAD) continue;
+
+                const SpriteAnimation& animation = alienAnimation[alien.type - 1];
+                size_t currentFrame = animation.time / animation.frameDuration;
+                const Sprite& alienSprite = *animation.frames[currentFrame];
+                bool overlap = spriteOverlap(bulletSprite, game.bullets[i].x, game.bullets[i].y, alienSprite, alien.x, alien.y);
+                
+                if (overlap){
+                    game.aliens[j].type = ALIEN_DEAD;
+                    game.aliens[j].x -= (alienDeathSprite.width - alienSprite.width) / 2;
+                    game.bullets[i] = game.bullets[game.bulletNum - 1];
+                    game.bulletNum--;
+                    continue;
+                }
             }
         }
 
